@@ -8,10 +8,12 @@ import os
 
 app = FastAPI()
 
-# Allow the frontend (vite dev server) to call this backend
+# Allow the frontend to call this backend from any origin (needed for deployment)
+# In production, set ALLOWED_ORIGINS environment variable (e.g., "https://yourdomain.com,https://www.yourdomain.com")
+allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +33,7 @@ model = YOLO(str(MODEL_PATH))  # small model; downloads on first run
 MIN_CONFIDENCE = float(os.getenv("YOLO_MIN_CONF", "0.4"))
 
 # Only speak about these object types (keeps output focused for blind user).
-# The model may detect many things; focusing on a short list avoids “random object” outputs.
+# The model may detect many things; focusing on a short list avoids "random object" outputs.
 IMPORTANT_CLASSES = {
     "person",
     "cell phone",
@@ -125,6 +127,8 @@ async def analyze_image(file: UploadFile = File(...)):
     )
 
     return {"objects": detections, "message": message}
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8001)
+    # For deployment, bind to 0.0.0.0 so it's accessible from outside
+    uvicorn.run(app, host="0.0.0.0", port=8001)
