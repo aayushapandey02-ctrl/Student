@@ -1,11 +1,11 @@
 const VITE_API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
 
 // Prefer explicit ENV URL in deploy, otherwise use Vite proxy path for dev.
-// Keep this robust even if someone sets VITE_API_URL=":8001/analyze" by accident.
+// For deployment, set VITE_API_URL to your backend domain (e.g., https://api.yourdomain.com:8001/analyze)
 const API_ENDPOINT = (() => {
-  if (!VITE_API_URL) return "/analyze";
+  if (!VITE_API_URL) return "/analyze";  // Dev: uses Vite proxy
   if (VITE_API_URL.startsWith("http://") || VITE_API_URL.startsWith("https://")) {
-    return VITE_API_URL;
+    return VITE_API_URL.endsWith("/analyze") ? VITE_API_URL : `${VITE_API_URL}/analyze`;
   }
   if (VITE_API_URL.startsWith(":")) {
     return `http://127.0.0.1${VITE_API_URL}`;
@@ -52,6 +52,7 @@ export const analyzeImage = async (base64Image: string): Promise<AnalyzeResult |
     const formData = new FormData();
     formData.append("file", blob, "image.jpg");
 
+    console.log("Sending request to:", API_ENDPOINT);
     const response = await fetch(API_ENDPOINT, {
       method: "POST",
       body: formData,
